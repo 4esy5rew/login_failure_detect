@@ -10,6 +10,7 @@ Usage:
 Defaults: uses wordlists/usernames.txt and wordlists/passwords.txt (created in this repo).
 """
 import argparse
+from pathlib import Path
 import shlex
 import subprocess
 import sys
@@ -36,6 +37,16 @@ try:
 except Exception:
     print("BeautifulSoup4 not installed. Run: pip install -r requirements.txt")
     sys.exit(1)
+
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def resolve_local_path(path_value):
+    path = Path(path_value)
+    if path.is_absolute():
+        return str(path)
+    return str(SCRIPT_DIR / path)
 
 
 def find_login_form(soup):
@@ -267,7 +278,6 @@ def extract_credentials_from_hydra(hydra_stdout, userlist_path):
     """Extract found credentials from hydra output."""
     import re
     creds = []
-    attempt_creds = []
     
     # Rejoin lines that were broken by terminal wrapping
     lines_raw = hydra_stdout.splitlines()
@@ -305,7 +315,6 @@ def extract_credentials_from_hydra(hydra_stdout, userlist_path):
     for line in lines:
         attempt_match = re.search(r'\[ATTEMPT\].*?login\s+"([^"]*)"\s+-\s+pass\s+"([^"]*)"', line, re.IGNORECASE)
         if attempt_match:
-            attempt_creds.append((attempt_match.group(1), attempt_match.group(2)))
             continue
 
         # Hydra output format: [PORT][MODULE] host: TARGET   login: USER   password: PASS
@@ -317,21 +326,10 @@ def extract_credentials_from_hydra(hydra_stdout, userlist_path):
                 continue
 
             pass_match = re.search(r'\bpassword:\s*(\S+)', line, re.IGNORECASE)
-            if not pass_match:
-                continue
-
-            pass_val = pass_match.group(1)
-            try:
-                with open(userlist_path) as f:
-                    for first_user in f:
-                        first_user = first_user.strip()
-                        if first_user:
-                            creds.append((first_user, pass_val))
-                            break
-            except Exception:
-                creds.append(('(unknown)', pass_val))
+            if pass_match:
+                creds.append(('(unknown)', pass_match.group(1)))
     
-    return attempt_creds[-1:] or creds
+    return creds
 
 
 
@@ -340,11 +338,14 @@ def main():
         description='Detect login failure string from a URL (and optionally test credentials)'
     )
     p.add_argument('url', help='Target URL (e.g. https://example.com/login or example.com/login)')
-    p.add_argument('--userlist', default='wordlists/usernames.txt', help='Username wordlist (used only with --test)')
-    p.add_argument('--passlist', default='wordlists/passwords.txt', help='Password wordlist (used only with --test)')
+    p.add_argument('--userlist', default=resolve_local_path('wordlists/usernames.txt'), help='Username wordlist (used only with --test)')
+    p.add_argument('--passlist', default=resolve_local_path('wordlists/passwords.txt'), help='Password wordlist (used only with --test)')
     p.add_argument('--test', action='store_true', help='Also run hydra using the provided wordlists to test standard credentials')
     p.add_argument('-v', '--verbose', action='store_true', help='Verbose: show extra diagnostic info and timings')
     args = p.parse_args()
+
+    args.userlist = resolve_local_path(args.userlist)
+    args.passlist = resolve_local_path(args.passlist)
 
     target = args.url
     # normalize URL: if no scheme, default to http
