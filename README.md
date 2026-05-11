@@ -1,6 +1,6 @@
-# hydra_tool
+# Login Failure Detect
 
-`hydra_tool.py` analyzes a login page, detects the most likely failure string,
+`login_failure_detect` analyzes a login page, detects the most likely failure string,
 and can optionally run a `hydra` standard-credential test against the detected form.
 
 ## What It Does
@@ -27,33 +27,33 @@ python -m pip install -r requirements.txt
 Show help:
 
 ```bash
-python hydra_tool.py -h
+python login_failure_detect.py -h
 ```
 
 Basic detection only (default mode):
 
 ```bash
-python hydra_tool.py https://example.com/login
-python hydra_tool.py example.com/login
+python login_failure_detect.py https://example.com/login
+python login_failure_detect.py example.com/login
 ```
 
 Run detection + hydra credential test:
 
 ```bash
-python hydra_tool.py --test https://example.com/login
+python login_failure_detect.py --test https://example.com/login
 ```
 
 Verbose mode (extra diagnostics for failure detection):
 
 ```bash
-python hydra_tool.py -v https://example.com/login
-python hydra_tool.py --test -v https://example.com/login
+python login_failure_detect.py -v https://example.com/login
+python login_failure_detect.py --test -v https://example.com/login
 ```
 
 Custom wordlists (used only with `--test`):
 
 ```bash
-python hydra_tool.py --test --userlist wordlists/usernames.txt --passlist wordlists/passwords.txt https://example.com/login
+python login_failure_detect.py --test --userlist wordlists/usernames.txt --passlist wordlists/passwords.txt https://example.com/login
 ```
 
 ## CLI Options
